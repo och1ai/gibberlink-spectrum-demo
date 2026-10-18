@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GibberLink: demo de voces</title>
+<style>
+:root{
+  --bg:#f6f5f2; --panel:#ffffff; --ink:#1c1c1e; --muted:#6b6b72; --line:#e3e1db; --accent:#2b5fd9;
+  --va:#2b5fd9; --vb:#c2410c; --vc:#7c3aed; --ok:#15803d; --bad:#b91c1c; --chip:#f0eee8;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121214; --panel:#1b1b1f; --ink:#ececf0; --muted:#9a9aa4; --line:#2c2c33; --accent:#6d8dff;
+    --va:#6d8dff; --vb:#ff9a5c; --vc:#b794ff; --ok:#4ade80; --bad:#f87171; --chip:#26262c;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121214; --panel:#1b1b1f; --ink:#ececf0; --muted:#9a9aa4; --line:#2c2c33; --accent:#6d8dff;
+  --va:#6d8dff; --vb:#ff9a5c; --vc:#b794ff; --ok:#4ade80; --bad:#f87171; --chip:#26262c;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1280px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:22px;margin:0 0 2px;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:0 0 16px}
+.bar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:16px}
+.bar label{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
+.bar select,.bar input[type=text]{background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit}
+.bar input[type=range]{width:140px}
+button{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 13px;border-radius:9px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) button.primary{color:#0b0b0d}}
+:root[data-theme="dark"] button.primary{color:#0b0b0d}
+button:disabled{opacity:.45;cursor:not-allowed}
+.spacer{flex:1}
+.status{font-size:12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px}
+@media (max-width:980px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.panel h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 10px;font-weight:600}
+#chat{display:flex;flex-direction:column;gap:12px;min-height:240px;max-height:calc(100vh - 250px);overflow:auto;padding-right:4px}
+.empty{color:var(--muted);padding:30px 8px;text-align:center}
+.msg{border:1px solid var(--line);border-left:4px solid var(--vc0,var(--accent));border-radius:10px;padding:10px 12px;background:var(--bg)}
+.msg.A{--vc0:var(--va)} .msg.B{--vc0:var(--vb)} .msg.C{--vc0:var(--vc)}
+.mh{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline;font-size:12px;color:var(--muted)}
+.mh b{color:var(--vc0);font-size:13px}
+.line{display:grid;grid-template-columns:78px 1fr;gap:6px;margin-top:6px;align-items:start}
+.tag{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding-top:2px}
+.txt{font-size:15px}
+.txt.fail{color:var(--bad);font-style:italic}
+.snd{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--muted);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+canvas.spec{width:100%;height:78px;border-radius:6px;display:block;background:#000;margin-top:8px}
+.prog{height:4px;background:var(--line);border-radius:3px;margin-top:8px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--vc0)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{background:var(--chip);border-radius:6px;padding:2px 8px;font-size:12px;font-variant-numeric:tabular-nums}
+.chip.ok{color:var(--ok)} .chip.bad{color:var(--bad)}
+.group{border:1px dashed var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:10px}
+.group>.gh{font-size:12px;color:var(--muted)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:12px}
+.kpi{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.kpi small{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.kpi b{font-size:20px;font-variant-numeric:tabular-nums}
+table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{text-align:right;padding:5px 6px;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+canvas.chart{width:100%;height:150px;display:block}
+.note{font-size:12px;color:var(--muted);margin-top:8px}
+.cmp{font-size:13px;margin-top:8px}
+.cmp b{font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>GibberLink: demo de voces</h1>
+  <p class="sub">Tres "voces" que comparten el aire sin pisarse. Cada mensaje se codifica y se decodifica con el <code>ggwave</code> real del repo, en este navegador. Abajo de cada burbuja está el sonido (espectrograma) y su traducción a texto.</p>
+
+  <div class="bar">
+    <button class="primary" id="bTurns">▶ Conversación por turnos</button>
+    <button class="primary" id="bDuplex">⇉ Dúplex: 3 voces a la vez</button>
+    <button class="primary" id="bCmp">⚡ Comparar ggwave vs OFDM</button>
+    <button id="bStop" disabled>■ Detener</button>
+    <button id="bReset">Reiniciar</button>
+    <span class="spacer"></span>
+    <label>Códec
+      <select id="codec"><option value="ggwave" selected>ggwave (FSK)</option><option value="ofdm">OFDM (QAM adaptativa)</option></select>
+    </label>
+    <label>Velocidad ggwave
+      <select id="speed"><option>NORMAL</option><option selected>FAST</option><option>FASTEST</option></select>
+    </label>
+    <label>Ruido <input type="range" id="snr" min="-6" max="31" value="31"><output id="snrOut">sin ruido</output></label>
+    <label><input type="checkbox" id="echo"> Eco de sala</label>
+    <label><input type="checkbox" id="sound" checked> Sonido</label>
+    <label><input type="checkbox" id="rt" checked> Tiempo real</label>
+    <span class="status" id="status">cargando ggwave…</span>
+  </div>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>Conversación</h2>
+      <div id="chat"><div class="empty">Pulsa una de las dos demos, o escribe un mensaje abajo.</div></div>
+      <form class="bar" id="form" style="margin:12px 0 0;padding:8px 10px">
+        <select id="vsel"><option value="A">Voz A</option><option value="B">Voz B</option><option value="C">Voz C (ultrasonido)</option></select>
+        <input type="text" id="free" maxlength="110" placeholder="Escribe un mensaje (se envía sin tildes)" style="flex:1;min-width:160px">
+        <button id="bSend" type="submit">Enviar</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>Métricas</h2>
+      <div class="kpis">
+        <div class="kpi"><small>Mensajes</small><b id="kMsgs">0</b></div>
+        <div class="kpi"><small>Decodificados</small><b id="kOk">–</b></div>
+        <div class="kpi"><small>Bytes</small><b id="kBytes">0</b></div>
+        <div class="kpi"><small>Tiempo de aire</small><b id="kAir">0 s</b></div>
+        <div class="kpi"><small>Caudal medio</small><b id="kRate">–</b></div>
+      </div>
+      <table id="tbl">
+        <thead><tr><th>Voz</th><th>Msgs</th><th>Bytes</th><th>B/s</th><th>Banda (Hz)</th><th>bit/s/Hz</th><th>OK</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <h2 style="margin-top:16px">Mapa del espectro (0–24 kHz)</h2>
+      <canvas class="chart" id="map" style="height:84px"></canvas>
+      <div class="note" id="mapNote"></div>
+      <h2 style="margin-top:16px">Bytes acumulados en el tiempo</h2>
+      <canvas class="chart" id="cum"></canvas>
+      <div class="cmp" id="cmp"></div>
+      <div class="note"><b>OFDM</b> aquí es una simulación: elige la modulación (64-QAM … BPSK repetido) según el SNR del deslizador, como si el canal se hubiera medido antes. Con "sin ruido" supone 30 dB. Los B/s incluyen el preámbulo de sincronismo y la cabecera, por eso los mensajes cortos rinden menos de lo que daría la modulación sola. Con SNR bajo, OFDM pasa a repetir bits y su caudal cae hasta ~13 B/s, parecido al de ggwave; bajo unos −4 dB fallan los dos.</div>
+      <div class="note">Referencia: una persona hablando son ~15 caracteres/s. A <b>FAST</b> ggwave va a ~14 B/s, así que la ventaja no es la velocidad frente a la voz, sino no depender de reconocimiento de voz ni de un servidor, y poder tener varias voces en paralelo.</div>
+    </section>
+  </div>
+</div>
+
+<script>
+/*GGWAVE*/
+</script>
+<script>
+/*DSP*/
+</script>
+<script>
+const $ = s => document.querySelector(s);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const SCRIPT_TURNS = [
+  ['A', 'Hola, soy un asistente de IA. Quiero reservar una habitacion doble.'],
+  ['B', 'Hola, soy el asistente del hotel. Tambien soy una IA, sigamos por sonido.'],
+  ['C', 'ctrl: modo=datos fmt=json lang=es v=1'],
+  ['A', 'Dos noches desde el viernes 24, para 2 personas.'],
+  ['B', 'Disponible. 95 euros por noche con desayuno.'],
+  ['A', 'Perfecto. Reservar a nombre de Juan Perez.'],
+  ['B', 'Reserva confirmada: codigo HX-4821.'],
+  ['C', 'ctrl: ack code=HX-4821 end'],
+];
+const SCRIPT_DUPLEX = [
+  { A: 'Necesito cambiar la reserva al sabado.', B: 'Te ofrezco ademas late checkout a las 14:00.', C: 'ctrl: sync t=1729 seq=42' },
+  { A: 'Acepto el late checkout, gracias.', B: 'Listo, cambio aplicado. Buen viaje.', C: 'ctrl: ack seq=42 done' },
+];
+let duplexIdx = 0, busy = false, abort = false, actx = null, clock = 0;
+const state = { msgs: [], events: [] };   // msgs: {voice,bytes,dur,ok,m}
+const els = { chat: $('#chat'), status: $('#status') };
+
+const fmt = (x, d = 1) => Number.isFinite(x) ? x.toFixed(d).replace('.', ',') : '–';
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function settings() {
+  const s = +$('#snr').value;
+  return { codec: $('#codec').value, speed: $('#speed').value, snr: s > 30 ? null : s, echo: $('#echo').checked, sound: $('#sound').checked, rt: $('#rt').checked };
+}
+$('#snr').oninput = () => { const s = +$('#snr').value; $('#snrOut').textContent = s > 30 ? 'sin ruido' : 'SNR ' + s + ' dB'; };
+$('#snr').oninput();
+$('#codec').onchange = () => { $('#speed').disabled = $('#codec').value === 'ofdm'; };
+const encAny = (v, text, s) => s.codec === 'ofdm' ? ofdmEncode(v, text, s.snr) : encodeVoice(v, text, s.speed);
+const decAny = (v, sig, s) => s.codec === 'ofdm' ? ofdmDecode(v, sig) : decodeVoice(v, sig);
+const chan = (x, s) => s.echo ? roomEcho(x) : x;
+
+/* ---------- espectrograma ---------- */
+const PAL = [[0,0,4],[40,11,84],[101,21,110],[159,42,99],[212,72,66],[245,125,21],[250,193,39],[252,255,164]];
+function color(t) { t = Math.max(0, Math.min(1, t)) * (PAL.length - 1); const i = Math.min(Math.floor(t), PAL.length - 2), f = t - i;
+  return PAL[i].map((v, k) => Math.round(v + (PAL[i + 1][k] - v) * f)); }
+function drawSpec(cv, sig, bands) {
+  const W = 520, H = 120, NF = 1024;
+  cv.width = W; cv.height = H;
+  const g = cv.getContext('2d'), img = g.createImageData(W, H);
+  const re = new Float64Array(NF), im = new Float64Array(NF), win = new Float64Array(NF);
+  for (let i = 0; i < NF; i++) win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (NF - 1));
+  const cols = [], hop = Math.max(1, (sig.length - NF) / W);
+  let maxDb = -200;
+  for (let c = 0; c < W; c++) {
+    const o = Math.floor(c * hop); re.fill(0); im.fill(0);
+    for (let i = 0; i < NF; i++) re[i] = (sig[o + i] || 0) * win[i];
+    fft(re, im, false);
+    const col = new Float32Array(NF / 2);
+    for (let k = 0; k < NF / 2; k++) { const p = 10 * Math.log10(re[k] * re[k] + im[k] * im[k] + 1e-12); col[k] = p; if (p > maxDb) maxDb = p; }
+    cols.push(col);
+  }
+  for (let c = 0; c < W; c++) for (let y = 0; y < H; y++) {
+    const k = Math.min(NF / 2 - 1, Math.floor((H - 1 - y) / H * NF / 2));
+    const [r, gg, b] = color((cols[c][k] - (maxDb - 70)) / 70);
+    const p = (y * W + c) * 4; img.data[p] = r; img.data[p + 1] = gg; img.data[p + 2] = b; img.data[p + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  g.font = '10px system-ui'; g.fillStyle = 'rgba(255,255,255,.75)';
+  for (const f of [0, 6, 12, 18, 24]) { const y = H - 1 - f / 24 * H; g.fillText(f + 'k', 3, Math.min(H - 3, Math.max(10, y))); }
+  if (bands) for (const b of bands) { g.strokeStyle = b.color; g.lineWidth = 1; g.setLineDash([4, 3]);
+    for (const f of [b.lo, b.hi]) { const y = H - 1 - f / NYQ * H; g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); } }
+}
+
+/* ---------- audio ---------- */
+function ensureAudio() { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: FS }); if (actx.state === 'suspended') actx.resume(); return actx; }
+function playAndWait(sig, dur, s, onProg) {
+  return new Promise(res => {
+    let src = null;
+    if (s.sound) { const a = ensureAudio(), b = a.createBuffer(1, sig.length, FS); b.getChannelData(0).set(sig);
+      src = a.createBufferSource(); src.buffer = b; src.connect(a.destination); src.start(); }
+    if (!s.rt) { onProg(1); if (src) src.stop(); return res(); }
+    const t0 = performance.now();
+    (function tick() {
+      const p = Math.min(1, (performance.now() - t0) / 1000 / dur);
+      onProg(p);
+      if (abort) { if (src) src.stop(); return res(); }
+      if (p >= 1) return res();
+      requestAnimationFrame(tick);
+    })();
+  });
+}
+
+/* ---------- UI de mensajes ---------- */
+function mkBubble(v, desc, parent) {
+  const d = document.createElement('div'); d.className = 'msg ' + v.id;
+  d.innerHTML = `<div class="mh"><b>${v.name}</b><span class="proto">${desc}</span></div>
+    <div class="line"><span class="tag">Sonido</span><span class="snd">codificando…</span></div>
+    <div class="line"><span class="tag">Traducción</span><span class="txt">…</span></div>
+    <canvas class="spec" width="520" height="120"></canvas>
+    <div class="prog"><i></i></div>
+    <div class="chips"></div>`;
+  (parent || els.chat).appendChild(d);
+  return d;
+}
+const descOf = (v, s) => s.codec === 'ofdm' ? 'OFDM · codificando…' : `${v.ultra ? 'ULTRASOUND' : 'AUDIBLE'}_${s.speed}${v.shift ? ' · desplazada +' + v.shift + ' Hz' : ''}`;
+function soundString(sig) {
+  if (sig.info) return sig.info.mode + ' en cada subportadora de 46,9 Hz (la modulación se elige según el SNR)';   // cadena legible del contenido espectral (primeros tonos)
+  const NF = 4096, re = new Float64Array(NF), im = new Float64Array(NF);
+  const start = Math.floor(sig.length * 0.3);
+  for (let i = 0; i < NF; i++) re[i] = (sig[start + i] || 0) * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / (NF - 1)));
+  fft(re, im, false);
+  const pk = []; let mx = 0;
+  for (let k = 2; k < NF / 2 - 1; k++) { const p = re[k] * re[k] + im[k] * im[k]; if (p > mx) mx = p; }
+  for (let k = 2; k < NF / 2 - 1; k++) { const p = re[k] * re[k] + im[k] * im[k]; if (p > mx * 0.2 && p > (re[k-1]**2 + im[k-1]**2) && p >= (re[k+1]**2 + im[k+1]**2)) pk.push(Math.round(k * FS / NF)); }
+  return 'tonos ≈ ' + pk.slice(0, 7).join(' · ') + ' Hz …';
+}
+function chip(txt, cls) { return `<span class="chip ${cls || ''}">${txt}</span>`; }
+function fillMetrics(d, m, ok) {
+  d.querySelector('.chips').innerHTML = [
+    chip(m.bytes + ' B'), chip(fmt(m.dur, 2) + ' s'), chip(fmt(m.Bps) + ' B/s'), chip(Math.round(m.bps) + ' bit/s'),
+    chip('banda ' + Math.round(m.lo) + '–' + Math.round(m.hi) + ' Hz'), chip(fmt(m.eff, 3) + ' bit/s/Hz'),
+    chip('hablado ≈ ' + fmt(m.bytes / 15, 1) + ' s'), chip(ok ? '✓ decodificado' : '✗ no decodificado', ok ? 'ok' : 'bad')
+  ].join('');
+}
+function setText(d, txt) { const t = d.querySelector('.txt'); if (txt == null) { t.textContent = 'no se pudo decodificar (demasiado ruido)'; t.classList.add('fail'); } else t.textContent = txt; }
+function record(v, m, ok, t0, codec) { state.msgs.push({ voice: v.id, codec, bytes: m.bytes, dur: m.dur, ok, m }); state.events.push({ t: t0 + m.dur, voice: v.id, bytes: ok ? m.bytes : 0 }); }
+function scroll() { els.chat.scrollTop = els.chat.scrollHeight; }
+
+/* ---------- envío ---------- */
+async function sendOne(vid, text, parent, codecOverride) {
+  const v = VOICES[vid], s = settings(); if (codecOverride) s.codec = codecOverride; text = asciiOnly(text);
+  const d = mkBubble(v, descOf(v, s), parent); scroll();
+  await sleep(20);
+  const sig = encAny(v, text, s);
+  if (sig.info) d.querySelector('.proto').textContent = sig.info.label;
+  const m = signalMetrics(sig, new TextEncoder().encode(text).length);
+  d.querySelector('.snd').textContent = soundString(sig);
+  drawSpec(d.querySelector('canvas'), sig, [{ lo: m.lo, hi: m.hi, color: cssv(v.cssVar) }]);
+  const rx = addNoise(chan(sig, s), s.snr, meanPower(sig));
+  const t0 = clock;
+  await playAndWait(rx, m.dur, s, p => { d.querySelector('.prog i').style.width = (p * 100) + '%'; });
+  if (abort) { d.remove(); return null; }
+  const out = decAny(v, rx, s), ok = out === text;
+  setText(d, out); fillMetrics(d, m, ok);
+  d.querySelector('.prog').remove();
+  clock += m.dur; record(v, m, ok, t0, s.codec);
+  refresh(); scroll();
+  return { m, ok, codec: s.codec };
+}
+async function sendDuplex(msgs) {
+  const s = settings(), vids = Object.keys(msgs);
+  const g = document.createElement('div'); g.className = 'group';
+  g.innerHTML = '<div class="gh">Bloque dúplex: las tres voces suenan a la vez y se separan por frecuencia al recibir</div>';
+  els.chat.appendChild(g);
+  const bubbles = {}, sigs = {}, ms = {};
+  for (const id of vids) { const text = asciiOnly(msgs[id]); msgs[id] = text; bubbles[id] = mkBubble(VOICES[id], descOf(VOICES[id], s), g);
+    sigs[id] = encAny(VOICES[id], text, s); if (sigs[id].info) bubbles[id].querySelector('.proto').textContent = sigs[id].info.label; ms[id] = signalMetrics(sigs[id], new TextEncoder().encode(text).length);
+    bubbles[id].querySelector('.snd').textContent = soundString(sigs[id]); }
+  const mix = mixSignals(Object.values(sigs)), rx = addNoise(chan(mix, s), s.snr, meanPower(mix) / vids.length);
+  const mixCv = document.createElement('canvas'); mixCv.className = 'spec'; g.appendChild(mixCv);
+  drawSpec(mixCv, rx, vids.map(id => ({ lo: ms[id].lo, hi: ms[id].hi, color: cssv(VOICES[id].cssVar) })));
+  const lab = document.createElement('div'); lab.className = 'note'; lab.textContent = 'Señal mezclada que "oye" el micrófono (líneas punteadas: banda de cada voz).'; g.appendChild(lab);
+  scroll();
+  const dmax = Math.max(...vids.map(id => ms[id].dur)), t0 = clock;
+  await playAndWait(rx, dmax, s, p => vids.forEach(id => { bubbles[id].querySelector('.prog i').style.width = Math.min(100, p * dmax / ms[id].dur * 100) + '%'; }));
+  if (abort) { g.remove(); return; }
+  await sleep(10);
+  let seq = 0;
+  for (const id of vids) {
+    const out = decAny(VOICES[id], rx, s), ok = out === msgs[id];
+    setText(bubbles[id], out); fillMetrics(bubbles[id], ms[id], ok); bubbles[id].querySelector('.prog').remove();
+    record(VOICES[id], ms[id], ok, t0, s.codec); seq += ms[id].dur;
+  }
+  clock += dmax;
+  const cmp = document.createElement('div'); cmp.className = 'cmp';
+  cmp.innerHTML = `Por turnos: <b>${fmt(seq, 2)} s</b> · En paralelo: <b>${fmt(dmax, 2)} s</b> · Ganancia: <b>${fmt(seq / dmax, 2)}×</b>`;
+  g.appendChild(cmp); $('#cmp').innerHTML = 'Último bloque dúplex → ' + cmp.innerHTML;
+  refresh(); scroll();
+}
+
+/* ---------- panel de métricas ---------- */
+function refresh() {
+  const M = state.msgs, ok = M.filter(x => x.ok).length, bytes = M.reduce((a, x) => a + (x.ok ? x.bytes : 0), 0), air = M.reduce((a, x) => a + x.dur, 0);
+  $('#kMsgs').textContent = M.length; $('#kOk').textContent = M.length ? ok + '/' + M.length : '–';
+  $('#kBytes').textContent = bytes; $('#kAir').textContent = fmt(air, 1) + ' s';
+  $('#kRate').textContent = air ? fmt(bytes / air, 1) + ' B/s' : '–';
+  const tb = $('#tbl tbody'); tb.innerHTML = '';
+  const groups = []; for (const id of Object.keys(VOICES)) for (const cd of ['ggwave', 'ofdm']) groups.push([id, cd]);
+  for (const [id, cd] of groups) {
+    const L = M.filter(x => x.voice === id && x.codec === cd); if (!L.length) continue;
+    const by = L.reduce((a, x) => a + x.bytes, 0), du = L.reduce((a, x) => a + x.dur, 0), last = L[L.length - 1].m;
+    const e = by * 8 / du / last.bw;
+    tb.insertAdjacentHTML('beforeend', `<tr><td><span class="dot" style="background:${cssv(VOICES[id].cssVar)}"></span>${VOICES[id].name.split(' · ')[0]} · ${cd === 'ofdm' ? 'OFDM' : 'ggwave'}</td><td>${L.length}</td><td>${by}</td><td>${fmt(by / du)}</td><td>${Math.round(last.lo)}–${Math.round(last.hi)}</td><td>${fmt(e, 3)}</td><td>${L.filter(x => x.ok).length}/${L.length}</td></tr>`);
+  }
+  drawMap(); drawCum();
+}
+function fit(cv) { const r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1; cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d); const g = cv.getContext('2d'); g.scale(d, d); return { g, w: r.width, h: r.height }; }
+function drawMap() {
+  const { g, w, h } = fit($('#map')), ink = cssv('--muted'), line = cssv('--line');
+  g.clearRect(0, 0, w, h); g.font = '11px system-ui'; g.fillStyle = ink; g.strokeStyle = line;
+  const X = f => 28 + (w - 40) * f / NYQ;
+  g.fillStyle = cssv('--chip'); g.fillRect(X(0), 8, X(NYQ) - X(0), h - 34);
+  let occ = 0;
+  for (const id of Object.keys(VOICES)) {
+    const L = state.msgs.filter(x => x.voice === id), v = VOICES[id];
+    const lo = L.length ? L[L.length - 1].m.lo : (v.ultra ? 15000 : 1870 + v.shift), hi = L.length ? L[L.length - 1].m.hi : (v.ultra ? 19450 : 6330 + v.shift);
+    g.globalAlpha = L.length ? 1 : .35; g.fillStyle = cssv(v.cssVar); g.fillRect(X(lo), 8, Math.max(2, X(hi) - X(lo)), h - 34);
+    g.globalAlpha = 1; g.fillStyle = '#fff'; g.fillText(id, X((lo + hi) / 2) - 3, 8 + (h - 34) / 2 + 4);
+    if (L.length) occ += hi - lo;
+  }
+  g.fillStyle = ink; for (const f of [0, 4, 8, 12, 16, 20, 24]) { g.fillText(f + 'k', X(f * 1000) - 6, h - 8); }
+  $('#mapNote').textContent = state.msgs.length ? `Ocupación con las voces usadas: ${fmt(occ / 1000, 1)} kHz de 24 kHz (${fmt(occ / NYQ * 100, 0)} %). La base del repo usa solo 4,5 kHz en una voz.` : 'Zonas tenues = bandas previstas; se actualizan con lo medido.';
+}
+function drawCum() {
+  const { g, w, h } = fit($('#cum')), ink = cssv('--muted'), line = cssv('--line');
+  g.clearRect(0, 0, w, h); g.font = '11px system-ui';
+  const L = 34, B = 20, T = 8, R = 8;
+  const tmax = Math.max(1, clock), ev = state.events; let ymax = 10;
+  const ids = Object.keys(VOICES), cum = {};
+  for (const id of ids) { let c = 0; cum[id] = [[0, 0]]; for (const e of ev.filter(e => e.voice === id).sort((a, b) => a.t - b.t)) { c += e.bytes; cum[id].push([e.t, c]); } ymax = Math.max(ymax, c); }
+  const X = t => L + (w - L - R) * t / tmax, Y = b => h - B - (h - B - T) * b / ymax;
+  g.strokeStyle = line; g.fillStyle = ink;
+  for (let i = 0; i <= 4; i++) { const b = ymax * i / 4; g.beginPath(); g.moveTo(L, Y(b)); g.lineTo(w - R, Y(b)); g.stroke(); g.fillText(Math.round(b), 2, Y(b) + 4); }
+  g.fillText(fmt(tmax, 0) + ' s', w - R - 28, h - 5); g.fillText('0', L, h - 5);
+  for (const id of ids) { if (cum[id].length < 2) continue; g.strokeStyle = cssv(VOICES[id].cssVar); g.lineWidth = 2; g.beginPath();
+    cum[id].forEach(([t, b], i) => { i ? g.lineTo(X(t), Y(b)) : g.moveTo(X(t), Y(b)); }); g.stroke(); }
+}
+window.addEventListener('resize', () => { drawMap(); drawCum(); });
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', refresh);
+
+/* ---------- controles ---------- */
+function setBusy(b) { busy = b; for (const id of ['bTurns', 'bDuplex', 'bCmp', 'bSend']) $('#' + id).disabled = b || !G; $('#bStop').disabled = !b; }
+async function run(fn) { if (busy || !G) return; abort = false; ensureAudio(); setBusy(true); const e = els.chat.querySelector('.empty'); if (e) e.remove();
+  try { await fn(); } catch (err) { console.error(err); els.status.textContent = 'error: ' + err.message; } setBusy(false); }
+$('#bTurns').onclick = () => run(async () => { for (const [v, t] of SCRIPT_TURNS) { if (abort) break; await sendOne(v, t); await sleep(settings().rt ? 250 : 0); } });
+$('#bDuplex').onclick = () => run(async () => { await sendDuplex({ ...SCRIPT_DUPLEX[duplexIdx++ % SCRIPT_DUPLEX.length] }); });
+$('#form').onsubmit = e => { e.preventDefault(); const t = $('#free').value.trim(); if (!t) return; $('#free').value = ''; run(() => sendOne($('#vsel').value, t)); };
+$('#bCmp').onclick = () => run(async () => {
+  const text = $('#free').value.trim() || 'Hola, soy un asistente de IA. Quiero reservar una habitacion doble.';
+  const g = document.createElement('div'); g.className = 'group';
+  g.innerHTML = '<div class="gh">Comparación: el mismo mensaje por la misma voz y banda (1,9–6,3 kHz), con las mismas condiciones de ruido y eco</div>';
+  els.chat.appendChild(g);
+  const a = await sendOne('A', text, g, 'ggwave'); if (!a || abort) return;
+  const b = await sendOne('A', text, g, 'ofdm'); if (!b || abort) return;
+  const sp = a.m.Bps && b.m.Bps ? b.m.Bps / a.m.Bps : NaN;
+  const html = `ggwave: <b>${fmt(a.m.dur, 2)} s</b> (${fmt(a.m.Bps)} B/s, ${a.ok ? '✓' : '✗'}) · OFDM: <b>${fmt(b.m.dur, 2)} s</b> (${fmt(b.m.Bps)} B/s, ${b.ok ? '✓' : '✗'}) · OFDM: <b>${fmt(sp, 1)}×</b> la velocidad de ggwave`;
+  const c = document.createElement('div'); c.className = 'cmp'; c.innerHTML = html; g.appendChild(c); $('#cmp').innerHTML = 'Última comparación → ' + html; scroll();
+});
+$('#bStop').onclick = () => { abort = true; };
+$('#bReset').onclick = () => { abort = true; state.msgs = []; state.events = []; clock = 0; duplexIdx = 0; $('#cmp').textContent = '';
+  els.chat.innerHTML = '<div class="empty">Pulsa una de las dos demos, o escribe un mensaje abajo.</div>'; refresh(); };
+
+setBusy(true);
+ggwave_factory().then(g => { G = g; setBusy(false); els.status.textContent = 'ggwave listo (48 kHz)'; refresh(); })
+  .catch(e => { els.status.textContent = 'no se pudo cargar ggwave: ' + e; });
+refresh();
+</script>
+</body>
+</html>
